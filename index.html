@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HRLOS 인증</title>
+<style>
+  :root { --ok:#1f9d55; --bad:#d64545; --ink:#1d1d1f; --sub:#6b7280; --bg:#f4f6f8; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:var(--bg); font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; color:var(--ink); }
+  .card { width:calc(100% - 32px); max-width:420px; background:#fff; border-radius:20px;
+          padding:40px 24px; text-align:center; box-shadow:0 6px 24px rgba(0,0,0,.08); }
+  .icon { width:88px; height:88px; margin:0 auto 20px; border-radius:50%; display:flex;
+          align-items:center; justify-content:center; font-size:48px; color:#fff; }
+  .ok  .icon { background:var(--ok); }
+  .bad .icon { background:var(--bad); }
+  h1 { font-size:24px; margin:0 0 12px; }
+  .ok h1 { color:var(--ok); } .bad h1 { color:var(--bad); }
+  p { margin:6px 0; color:var(--sub); font-size:16px; }
+  .code { margin-top:18px; font-size:15px; color:var(--ink); letter-spacing:.5px; }
+  .spinner { width:48px; height:48px; margin:0 auto 20px; border:5px solid #e5e7eb;
+             border-top-color:var(--ok); border-radius:50%; animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="spinner"></div>
+  <p>인증 확인 중입니다…</p>
+</div>
+
+<script>
+  // ▼ Apps Script 웹앱 주소 (/exec 로 끝나는 주소). 배포 관리에서 복사한 주소와 같아야 합니다.
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyeE7bpjsjnT15IJJj5IWuOQRbOXMGcC4Y7CN2oKj4NUcHhzKCyFya65BWqjGYO7e18sg/exec';
+
+  const card = document.getElementById('card');
+  const code = (new URLSearchParams(location.search).get('code') || '').trim();
+
+  function show(ok, title, lines) {
+    card.className = 'card ' + (ok ? 'ok' : 'bad');
+    card.innerHTML =
+      '<div class="icon">' + (ok ? '✓' : '!') + '</div>' +
+      '<h1>' + title + '</h1>' +
+      lines.map(t => '<p>' + t + '</p>').join('') +
+      (code ? '<div class="code">쿠폰코드 ' + code.replace(/[<>&"]/g, '') + '</div>' : '');
+  }
+
+  if (!code) {
+    show(false, '잘못된 QR입니다', ['쿠폰코드가 없습니다.', '담당자에게 문의해 주세요.']);
+  } else {
+    // 구글 로그인 정보(쿠키)를 보내지 않기 때문에 다중계정이어도 /u/2/ 오류가 나지 않습니다.
+    fetch(API_URL + '?format=json&code=' + encodeURIComponent(code), { credentials: 'omit' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          const lines = [];
+          if (d.name) lines.push(d.name + ' 기사님');
+          if (d.time) lines.push(d.time);
+          show(true, d.message || 'HR소속 인증되었습니다', lines);
+        } else {
+          show(false, '인증 실패', [d.message || '등록되지 않은 쿠폰입니다.']);
+        }
+      })
+      .catch(() => show(false, '연결 오류', ['잠시 후 다시 QR을 찍어주세요.']));
+  }
+</script>
+</body>
+</html>
