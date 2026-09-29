@@ -55,7 +55,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 
   function call(params) {
-    const q = new URLSearchParams(Object.assign({ format: 'json', code: code }, params));
+    const q = new URLSearchParams(Object.assign({ format: 'json', code: code, ua: navigator.userAgent.slice(0, 400) }, params));
     // 구글 로그인 정보(쿠키)를 보내지 않기 때문에 다중계정이어도 /u/2/ 오류가 나지 않습니다.
     return fetch(API_URL + '?' + q.toString(), { credentials: 'omit' }).then(r => r.json());
   }
